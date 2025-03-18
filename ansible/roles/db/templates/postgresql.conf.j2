@@ -1,7 +1,7 @@
 listen_addresses = '*'
 wal_level = hot_standby
 archive_mode = on
-archive_command = 'test ! -f /var/lib/postgresql/13/main/archive/%f && cp %p /var/lib/postgresql/13/main/archive/%f'
+archive_command = 'test ! -f /var/lib/postgresql/16/main/archive/%f && cp %p /var/lib/postgresql/16/main/archive/%f'
 max_wal_senders = 5
 wal_sender_timeout = 60s
 logging_collector = on
