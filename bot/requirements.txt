@@ -1,4 +1,0 @@
-python-telegram-bot
-psycopg2-binary
-paramiko
-python-dotenv
