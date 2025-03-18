@@ -1,0 +1,57 @@
+- name: Install PostgreSQL
+  apt:
+    name: postgresql
+    state: present
+    update_cache: yes
+
+- name: Configure PostgreSQL
+  template:
+    src: postgresql.conf.j2
+    dest: /etc/postgresql/13/main/postgresql.conf
+  notify: Restart PostgreSQL
+
+- name: Configure pg_hba.conf
+  template:
+    src: pg_hba.conf.j2
+    dest: /etc/postgresql/13/main/pg_hba.conf
+  notify: Restart PostgreSQL
+
+- name: Ensure PostgreSQL is running
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Create replication user
+  postgresql_user:
+    name: replicator
+    password: reppass
+    role_attr_flags: REPLICATION
+  become_user: postgres
+
+- name: Setup replication on primary
+  command: psql -c "SELECT * FROM pg_start_backup();"
+  become_user: postgres
+  when: inventory_hostname == '192.168.1.1'
+
+- name: Copy data to replica
+  synchronize:
+    src: /var/lib/postgresql/13/main/
+    dest: /var/lib/postgresql/13/main/
+  delegate_to: 192.168.1.11
+  when: inventory_hostname == '192.168.1.1'
+
+- name: Stop backup mode
+  command: psql -c "SELECT pg_stop_backup();"
+  become_user: postgres
+  when: inventory_hostname == '192.168.1.1'
+
+- name: Configure recovery.conf on replica
+  copy:
+    dest: /var/lib/postgresql/13/main/recovery.conf
+    content: |
+      standby_mode = 'on'
+      primary_conninfo = 'host=192.168.1.1 port=5432 user=replicator password=reppass'
+      trigger_file = '/tmp/postgresql.trigger'
+  when: inventory_hostname == '192.168.1.11'
+  notify: Restart PostgreSQL

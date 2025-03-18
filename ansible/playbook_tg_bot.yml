@@ -1,0 +1,6 @@
+- name: Setup PostgreSQL and Telegram Bot
+  hosts: all
+  become: yes
+  roles:
+    - db
+    - bot
