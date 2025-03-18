@@ -1,6 +1,8 @@
-- name: Setup PostgreSQL and Telegram Bot
-  hosts: all
-  become: yes
-  roles:
-    - db
-    - bot
+[bot]
+192.168.1.101 ansible_user= ansible_ssh_pass=
+
+[db]
+192.168.1.7 ansible_user= ansible_ssh_pass= ansible_become_flags=""
+
+[db_repl]
+192.168.1.11 ansible_user= ansible_ssh_pass= ansible_become_flags=""
