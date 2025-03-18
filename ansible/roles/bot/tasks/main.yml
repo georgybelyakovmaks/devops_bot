@@ -5,19 +5,30 @@
       - python3-pip
       - git
     state: present
-    update_cache: yes
+    update_cache: no
 
 - name: Clone bot repository
   git:
     repo: https://github.com/georgybelyakovmaks/devops_bot.git
     dest: /home/bot/devops_bot
+    version: docker
+
+- name: Ensure python3-venv is installed
+  apt:
+    name: python3-venv
+    state: present
+
+- name: Create virtual environment
+  command: python3 -m venv /home/bot/devops_bot/venv
+  args:
+    creates: /home/bot/devops_bot/venv
 
 - name: Install Python requirements
   pip:
-    requirements: /home/bot/devops_bot/requirements.txt
-    executable: pip3
+    requirements: /home/bot/devops_bot/bot/requirements.txt
+    virtualenv: /home/bot/devops_bot/venv
 
 - name: Run the bot
-  command: python3 /home/bot/devops_bot/bot.py
-  async: 1
-  poll: 0
+  command: /home/bot/devops_bot/venv/bin/python /home/bot/devops_bot/bot/bot.py
+  environment:
+    PATH: /home/bot/devops_bot/venv/bin:{{ ansible_env.PATH }}
