@@ -1,0 +1,71 @@
+version: '2.4'
+
+services:
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile.db
+    container_name: db_container
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgresql.conf:/etc/postgresql/13/main/postgresql.conf
+      - ./pg_hba.conf:/etc/postgresql/13/main/pg_hba.conf
+      - postgres_data_new:/var/lib/postgresql/13/main
+    networks:
+      - bot_network
+
+  db_repl:
+    build:
+      context: ./db_repl
+      dockerfile: Dockerfile.db
+    container_name: db_repl_container
+    environment:
+      POSTGRES_USER: ${DB_REPL_USER}
+      POSTGRES_PASSWORD: ${DB_REPL_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./recovery.conf:/var/lib/postgresql/13/main/recovery.conf
+      - ./init_repl.sh:/var/lib/postgresql/13/main/init_repl.sh
+      - postgres_repl_data_new:/var/lib/postgresql/13/main
+    networks:
+      - bot_network
+    depends_on:
+      - db
+    command: bash -c "/var/lib/postgresql/13/main/init_repl.sh && postgres"
+
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: bot_container
+    environment:
+      TOKEN: ${TOKEN}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_DATABASE}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      RM_HOST: ${RM_HOST}
+      RM_PORT: ${RM_PORT}
+      RM_USER: ${RM_USER}
+      RM_PASSWORD: ${RM_PASSWORD}
+    depends_on:
+      - db
+    networks:
+      - bot_network
+
+volumes:
+  postgres_data_new:
+  postgres_repl_data_new:
+
+networks:
+  bot_network:
+    driver: bridge
+
