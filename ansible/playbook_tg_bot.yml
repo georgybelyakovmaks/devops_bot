@@ -1,8 +1,11 @@
-[bot]
-192.168.1.101 ansible_user= ansible_ssh_pass=
+- name: Setup Telegram Bot
+  hosts: bot
+  become: yes
+  roles:
+    - bot
 
-[db]
-192.168.1.7 ansible_user= ansible_ssh_pass= ansible_become_flags=""
-
-[db_repl]
-192.168.1.11 ansible_user= ansible_ssh_pass= ansible_become_flags=""
+- name: Setup PostgreSQL
+  hosts: db,db_repl
+  become: yes
+  roles:
+    - db
