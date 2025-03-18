@@ -1,11 +1,13 @@
+- name: Setup PostgreSQL
+  hosts: db,db_repl
+  become: yes
+  roles:
+    - db
+    
 - name: Setup Telegram Bot
   hosts: bot
   become: yes
   roles:
     - bot
 
-- name: Setup PostgreSQL
-  hosts: db,db_repl
-  become: yes
-  roles:
-    - db
+
