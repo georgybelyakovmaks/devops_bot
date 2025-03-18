@@ -1,20 +1,31 @@
 - name: Install PostgreSQL
   apt:
-    name: postgresql
+    name: postgresql-16
     state: present
-    update_cache: yes
+    update_cache: no
+
+- name: Ensure PostgreSQL configuration directory exists
+  file:
+    path: /etc/postgresql/16/main
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0755'
 
 - name: Configure PostgreSQL
   template:
     src: postgresql.conf.j2
-    dest: /etc/postgresql/13/main/postgresql.conf
-  notify: Restart PostgreSQL
+    dest: /etc/postgresql/16/main/postgresql.conf
 
 - name: Configure pg_hba.conf
   template:
     src: pg_hba.conf.j2
-    dest: /etc/postgresql/13/main/pg_hba.conf
-  notify: Restart PostgreSQL
+    dest: /etc/postgresql/16/main/pg_hba.conf
+
+- name: Restart PostgreSQL after configuration changes
+  service:
+    name: postgresql
+    state: restarted
 
 - name: Ensure PostgreSQL is running
   service:
@@ -22,10 +33,36 @@
     state: started
     enabled: yes
 
+- name: Create database ptstart
+  postgresql_db:
+    name: ptstart
+    owner: postgres
+  become_user: postgres
+
+- name: Create emails table if not exists
+  postgresql_query:
+    db: ptstart
+    query: |
+      CREATE TABLE IF NOT EXISTS emails (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL
+      );
+  become_user: postgres
+
+- name: Create phone_numbers table if not exists
+  postgresql_query:
+    db: ptstart
+    query: |
+      CREATE TABLE IF NOT EXISTS phone_numbers (
+        id SERIAL PRIMARY KEY,
+        phone_number VARCHAR(20) UNIQUE NOT NULL
+      );
+  become_user: postgres
+
 - name: Create replication user
   postgresql_user:
-    name: replicator
-    password: reppass
+    name: repl_user
+    password: 1234
     role_attr_flags: REPLICATION
   become_user: postgres
 
@@ -36,8 +73,8 @@
 
 - name: Copy data to replica
   synchronize:
-    src: /var/lib/postgresql/13/main/
-    dest: /var/lib/postgresql/13/main/
+    src: /var/lib/postgresql/16/main/
+    dest: /var/lib/postgresql/16/main/
   delegate_to: 192.168.1.11
   when: inventory_hostname == '192.168.1.1'
 
@@ -48,10 +85,15 @@
 
 - name: Configure recovery.conf on replica
   copy:
-    dest: /var/lib/postgresql/13/main/recovery.conf
+    dest: /var/lib/postgresql/16/main/recovery.conf
     content: |
       standby_mode = 'on'
-      primary_conninfo = 'host=192.168.1.1 port=5432 user=replicator password=reppass'
+      primary_conninfo = 'host=192.168.1.1 port=5432 user=repl_user password=1234'
       trigger_file = '/tmp/postgresql.trigger'
   when: inventory_hostname == '192.168.1.11'
-  notify: Restart PostgreSQL
+
+- name: Restart PostgreSQL after replication setup
+  service:
+    name: postgresql
+    state: restarted
+  when: inventory_hostname == '192.168.1.11'
