@@ -33,6 +33,14 @@
     state: started
     enabled: yes
 
+- name: Set password for postgres user
+  postgresql_user:
+    name: postgres
+    password: "386LbcGjwUfp"
+    role_attr_flags: "SUPERUSER"
+  become_user: postgres
+  become_flags: ""
+  
 - name: Create database ptstart
   postgresql_db:
     name: ptstart
