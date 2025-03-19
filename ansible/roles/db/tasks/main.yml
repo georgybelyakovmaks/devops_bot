@@ -33,14 +33,6 @@
     state: started
     enabled: yes
 
-- name: Set password for postgres user
-  postgresql_user:
-    name: postgres
-    password: "386LbcGjwUfp"
-    role_attr_flags: "SUPERUSER"
-  become_user: postgres
-  become_flags: ""
-  
 - name: Create database ptstart
   postgresql_db:
     name: ptstart
@@ -66,6 +58,14 @@
         phone_number VARCHAR(20) UNIQUE NOT NULL
       );
   become_user: postgres
+
+- name: Create user ptstart with full privileges
+  community.postgresql.postgresql_user:
+    name: ptstart
+    password: ""
+    role_attr_flags: SUPERUSER,CREATEDB,CREATEROLE
+  become_user: postgres
+
 
 - name: Create replication user
   postgresql_user:
